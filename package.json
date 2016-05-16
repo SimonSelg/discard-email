@@ -1,6 +1,6 @@
 {
   "name": "discard-email",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "provides an node.js wrapper to discard.email",
   "author": "Simon Selg <simon@selg.me>",
   "license": "MIT",
@@ -8,7 +8,7 @@
     "node": ">=6.0.0"
   },
   "bin": {
-    "discard-email": "dist/app.js"
+    "discard-email": "dist/index.js"
   },
   "repository": {
     "type": "git",
