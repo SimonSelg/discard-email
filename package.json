@@ -1,6 +1,6 @@
 {
   "name": "discard-email",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "provides an node.js wrapper to discard.email",
   "author": "Simon Selg <simon@selg.me>",
   "license": "MIT",
