@@ -1,6 +1,6 @@
 {
   "name": "discard-email",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "provides an node.js wrapper to discard.email",
   "author": "Simon Selg <simon@selg.me>",
   "license": "MIT",
@@ -9,6 +9,10 @@
   },
   "bin": {
     "egghead-downloader": "dist/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:SimonSelg/discard-email.git"
   },
   "dependencies": {
     "request-promise": "^3.0.0"
