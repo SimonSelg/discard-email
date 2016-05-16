@@ -1,23 +1,95 @@
 #! /usr/bin/env node
-import DiscardEmail from 'discard-email'
+const request = require('request-promise')
 
-// somewhere in an async function:
+export default class DiscardEmail {
+  static domains = {}
 
-async function doMagic () {
-  try {
-    // refresh the list of available domains (needed!)
-    await DiscardEmail.refreshMailDomains()
+  static async refreshMailDomains () {
+    DiscardEmail.domains = {}
 
-    // create an new instance
-    const discardEmail = new DiscardEmail('e7n9bd664v@discard.email')
-    const emails = await discardEmail.listEmails()
-    const email = await discardEmail.getEmail(emails[0].id)
-    console.log(email)
-  } catch (err) {
-    console.log('error', err)
-  } finally {
-    console.log('done')
+    const response = await request({
+      uri: 'http://discard.email/',
+      method: 'GET',
+      resolveWithFullResponse: true
+    })
+
+    const re = /<option value="(\d+)">(.+?(?!pw)) <\/option>/g
+    let match
+    while ((match = re.exec(response.body))) {
+      DiscardEmail.domains[match[2]] = match[1]
+    }
+  }
+
+  constructor (address) {
+    const [suffix, domain] = address.split('@')
+    if (!(domain in DiscardEmail.domains)) {
+      //  no emails for this domain
+      throw new Error('Invalid domain')
+    }
+
+    this.suffix = suffix
+    this.domain = domain
+    this.domainCode = DiscardEmail.domains[domain]
+
+    this.jar = request.jar()
+  }
+
+  async listEmails () {
+    const body = await request.post({
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      url: 'http://discard.email',
+      jar: this.jar,
+      form: {
+        'LocalPart': this.suffix,
+        'DomainType': 'public',
+        'DomainId': this.domainCode,
+        'LoginButton': 'Postfach abrufen'
+      },
+      followAllRedirects: true
+    })
+
+    const re = /<div class="Head"><a href="http:\/\/discard.email\/message-(.+?).htm">(.+?)<br \/><span class="Subject">(.+?)<\/span><\/a><\/div>/g
+    let match
+    let emails = []
+    while ((match = re.exec(body))) {
+      const email = {
+        id: match[1],
+        sender: match[2],
+        subject: match[3]
+      }
+      emails.push(email)
+    }
+
+    return emails
+  }
+
+  async getEmail (messageId) {
+    let response
+    try {
+      response = await request({
+        uri: `http://discard.email/message-${messageId}-mailVersion=plain.htm`,
+        method: 'GET',
+        jar: this.jar
+      })
+    } catch (err) {
+      throw new Error('Invalid email id')
+    }
+
+    // extact the email plaintext
+    const re = /<div id="MessageContent">\s<div>\s([\s\S]+?)<\/div>\s<\/div>\s<\/div>\s<\/section>/
+    const result = response.match(re)
+
+    if (result.length === 0) throw new Error('Invalid email id')
+
+    let email = result[1]
+
+    // replace line breaks
+    email = email.replace(/<br \/>/g, '')
+    // replace links
+    email = email.replace(/<a href="(.+?)" rel="external">.+?<\/a>/g, '$1')
+
+    return email
   }
 }
-
-doMagic()
